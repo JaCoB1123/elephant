@@ -218,18 +218,7 @@ in {
           };
         }
 
-        # Generate provider files
-        (builtins.listToAttrs
-          (map
-            (
-              provider:
-                lib.nameValuePair
-                "xdg/elephant/providers/${provider}.so"
-                {
-                  source = "${cfg.package}/lib/elephant/providers/${provider}.so";
-                }
-            )
-            cfg.providers))
+
 
         # Generate provider configs
         (mapAttrs'
@@ -284,6 +273,7 @@ in {
         ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
         Restart = "on-failure";
         RestartSec = 1;
+        Environment = "ELEPHANT_PROVIDER_DIR=${cfg.package}/lib/elephant/providers";
       };
     };
   };
