@@ -45,18 +45,6 @@ in {
       description = "The elephant package to use.";
     };
 
-    user = mkOption {
-      type = types.str;
-      default = "elephant";
-      description = "User under which elephant runs.";
-    };
-
-    group = mkOption {
-      type = types.str;
-      default = "elephant";
-      description = "Group under which elephant runs.";
-    };
-
     providers = mkOption {
       type = types.listOf (types.enum defaultProviders);
       default = defaultProviders;
