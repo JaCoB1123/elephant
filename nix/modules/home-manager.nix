@@ -218,8 +218,6 @@ in {
           };
         }
 
-
-
         # Generate provider configs
         (mapAttrs'
           (

@@ -46,7 +46,7 @@ in {
     };
 
     providers = mkOption {
-      type = types.listOf (types.enum defaultProviders);
+      type = types.listOf (types.str);
       default = defaultProviders;
       example = defaultProviders;
       description = ''
@@ -218,8 +218,6 @@ in {
           };
         }
 
-
-
         # Generate provider configs
         (mapAttrs'
           (
@@ -270,11 +268,19 @@ in {
       };
 
       serviceConfig = {
+        Type = "simple";
         ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
         Restart = "on-failure";
         RestartSec = 1;
         Environment = "ELEPHANT_PROVIDER_DIR=${cfg.package}/lib/elephant/providers";
+        ExecStopPost = "${pkgs.coreutils}/bin/rm -f /tmp/elephant.sock";
       };
+
+      restartTriggers = [
+        (builtins.hashString "sha256" (builtins.toJSON {
+          inherit (cfg) settings providers provider debug;
+        }))
+      ];
     };
   };
 }
