@@ -7,6 +7,19 @@ flake: {
 with lib; let
   cfg = config.programs.elephant;
   settingsFormat = pkgs.formats.toml {};
+  startScript = pkgs.writeShellScript "elephant-start" ''
+    session_path="$(${pkgs.systemd}/bin/systemctl --user show-environment | while IFS= read -r line; do
+      case "$line" in
+        PATH=*) printf '%s' "''${line#PATH=}"; break ;;
+      esac
+    done)"
+
+    if [ -n "$session_path" ]; then
+      export PATH="$session_path''${PATH:+:$PATH}"
+    fi
+
+    exec ${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}
+  '';
   defaultProviders = [
     "bluetooth"
     "bookmarks"
@@ -267,7 +280,7 @@ in {
 
       Service = {
         Type = "simple";
-        ExecStart = "${cfg.package}/bin/elephant ${optionalString cfg.debug "--debug"}";
+        ExecStart = startScript;
         Restart = "on-failure";
         RestartSec = 1;
 
