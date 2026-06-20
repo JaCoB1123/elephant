@@ -41,7 +41,10 @@ func parseFile(path, l, ll string) (*DesktopFile, error) {
 
 	parts := splitIntoParsebles(data)
 
-	f := &DesktopFile{}
+	f := &DesktopFile{
+		SourcePath: path,
+		RealPath:   resolvedDesktopPath(path),
+	}
 
 	for i, v := range parts {
 		data := parseData(v, l, ll)

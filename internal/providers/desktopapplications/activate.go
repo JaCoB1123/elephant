@@ -28,6 +28,8 @@ const (
 	ActionNewInstance = "new_instance"
 )
 
+var nixStoreDir = "/nix/store"
+
 func Activate(single bool, identifier, action string, query string, args string, format uint8, conn net.Conn) {
 	switch action {
 	case ActionPinUp:
@@ -59,6 +61,8 @@ func Activate(single bool, identifier, action string, query string, args string,
 		} else {
 			toRun = files[parts[0]].Exec
 		}
+
+		toRun = resolveDesktopExec(files[parts[0]], toRun)
 
 		if args == "" && config.WindowIntegration && wlr.IsSetup && action != ActionNewInstance {
 			if !isAction || !config.WindowIntegrationIgnoreActions {
@@ -197,4 +201,54 @@ func appHasWindow(f *DesktopFile) (wl.ProxyId, bool) {
 	}
 
 	return wl.ProxyId(0), false
+}
+
+func resolvedDesktopPath(path string) string {
+	if target, err := filepath.EvalSymlinks(path); err == nil {
+		return target
+	}
+
+	return path
+}
+
+func resolveDesktopExec(f *DesktopFile, commandLine string) string {
+	fields := strings.Fields(commandLine)
+	if len(fields) == 0 {
+		return commandLine
+	}
+
+	bin := fields[0]
+	if filepath.IsAbs(bin) {
+		return commandLine
+	}
+
+	if resolved, ok := resolveNixStoreDesktopBin(f, bin); ok {
+		return strings.Replace(commandLine, bin, resolved, 1)
+	}
+
+	return commandLine
+}
+
+func resolveNixStoreDesktopBin(f *DesktopFile, bin string) (string, bool) {
+	storePrefix := strings.TrimRight(nixStoreDir, string(os.PathSeparator)) + string(os.PathSeparator)
+	if f == nil || f.RealPath == "" || !strings.HasPrefix(f.RealPath, storePrefix) {
+		return "", false
+	}
+
+	parts := strings.SplitN(strings.TrimPrefix(f.RealPath, storePrefix), string(os.PathSeparator), 2)
+	if len(parts) == 0 || parts[0] == "" {
+		return "", false
+	}
+
+	storePath := filepath.Join(nixStoreDir, parts[0])
+	for _, candidate := range []string{
+		filepath.Join(storePath, "bin", bin),
+		filepath.Join(storePath, "sbin", bin),
+	} {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() && info.Mode()&0o111 != 0 {
+			return candidate, true
+		}
+	}
+
+	return "", false
 }
