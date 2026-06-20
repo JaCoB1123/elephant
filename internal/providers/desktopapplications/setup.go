@@ -20,9 +20,7 @@ import (
 
 type DesktopFile struct {
 	Data
-	Actions    []Data
-	SourcePath string
-	RealPath   string
+	Actions []Data
 }
 
 var (
